@@ -1,6 +1,7 @@
 "use client";
 
 import { saveMatchResult } from "@/app/(app)/turniere/plan-actions";
+import { createClient } from "@/lib/supabase/client";
 import {
   computeGroupStandings,
   type GroupStandingRow,
@@ -44,6 +45,36 @@ type Props = {
 };
 
 const DEBOUNCE_MS = 450;
+
+function matchRowFromRealtime(r: Record<string, unknown>): TournamentMatchRow | null {
+  if (typeof r.id !== "string" || typeof r.tournament_id !== "string") {
+    return null;
+  }
+  return {
+    id: r.id,
+    tournament_id: r.tournament_id,
+    sort_index: Number(r.sort_index ?? 0),
+    match_phase: r.match_phase === "ko" ? "ko" : "group",
+    group_code: String(r.group_code ?? ""),
+    pitch: Number(r.pitch ?? 1),
+    start_time: r.start_time == null ? null : String(r.start_time),
+    slot_home: r.slot_home == null ? null : Number(r.slot_home),
+    slot_away: r.slot_away == null ? null : Number(r.slot_away),
+    label_home:
+      r.label_home == null || r.label_home === undefined
+        ? null
+        : String(r.label_home),
+    label_away:
+      r.label_away == null || r.label_away === undefined
+        ? null
+        : String(r.label_away),
+    goals_home: r.goals_home == null ? null : Number(r.goals_home),
+    goals_away: r.goals_away == null ? null : Number(r.goals_away),
+    is_active: Boolean(r.is_active),
+    created_at: String(r.created_at ?? ""),
+    updated_at: String(r.updated_at ?? ""),
+  };
+}
 
 function displayName(names: string[], slot: number): string {
   const s = String(names[slot] ?? "").trim();
@@ -139,6 +170,76 @@ export function VorrundePlan({
     setDrafts(d);
     draftsRef.current = d;
   }, [initialMatches]);
+
+  /** Live-Sync: Ergebnisse von anderen Tabs / Geräten (Supabase Realtime). */
+  useEffect(() => {
+    const supabase = createClient();
+
+    const clearPersistTimer = (matchId: string) => {
+      const t = timersRef.current[matchId];
+      if (t) clearTimeout(t);
+      delete timersRef.current[matchId];
+    };
+
+    const applyRemoteRow = (row: TournamentMatchRow) => {
+      clearPersistTimer(row.id);
+      setMatches((prev) => {
+        const idx = prev.findIndex((m) => m.id === row.id);
+        if (idx === -1) {
+          return [...prev, row].sort((a, b) => a.sort_index - b.sort_index);
+        }
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...row };
+        return next;
+      });
+      const dh = row.goals_home != null ? String(row.goals_home) : "";
+      const da = row.goals_away != null ? String(row.goals_away) : "";
+      setDrafts((prev) => {
+        const merged = { ...prev, [row.id]: { h: dh, a: da } };
+        draftsRef.current = merged;
+        return merged;
+      });
+    };
+
+    const channel = supabase
+      .channel(`tournament_matches:${tournamentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tournament_matches",
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            const row = matchRowFromRealtime(
+              payload.new as Record<string, unknown>,
+            );
+            if (row && row.tournament_id === tournamentId) {
+              applyRemoteRow(row);
+            }
+            return;
+          }
+          if (payload.eventType === "DELETE") {
+            const oldId = (payload.old as { id?: string })?.id;
+            if (!oldId) return;
+            clearPersistTimer(oldId);
+            setMatches((prev) => prev.filter((m) => m.id !== oldId));
+            setDrafts((prev) => {
+              const { [oldId]: _, ...rest } = prev;
+              draftsRef.current = rest;
+              return rest;
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [tournamentId]);
 
   useEffect(() => {
     return () => {

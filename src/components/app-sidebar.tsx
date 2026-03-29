@@ -24,7 +24,8 @@ function IconQueueList(props: { className?: string }) {
   );
 }
 
-function IconEnvelope(props: { className?: string }) {
+/** Heroicons „Cog6Tooth“ (Outline), optisch an die anderen Sidebar-Icons angepasst */
+function IconSettings(props: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -38,7 +39,12 @@ function IconEnvelope(props: { className?: string }) {
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.292.24-.437.613-.431.992a6.932 6.932 0 010 .255c-.006.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.379-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
       />
     </svg>
   );
@@ -63,7 +69,9 @@ function NavButton({
   const active =
     href === "/turniere"
       ? pathname === "/turniere"
-      : pathname === href || pathname.startsWith(href + "/");
+      : href === "/konto"
+        ? pathname === "/konto"
+        : pathname === href || pathname.startsWith(href + "/");
 
   const layout = iconOnly
     ? "w-full justify-center px-2 py-3"
@@ -105,14 +113,12 @@ type SidebarProps = {
   displayMode: AppSidebarDisplayMode;
   /** Nur bei displayMode drawer: sichtbar */
   drawerOpen: boolean;
-  userEmail: string | null;
   onNavigate?: () => void;
 };
 
 export function AppSidebar({
   displayMode,
   drawerOpen,
-  userEmail,
   onNavigate,
 }: SidebarProps) {
   const iconOnly = displayMode === "compact";
@@ -148,39 +154,19 @@ export function AppSidebar({
         />
       </nav>
       <div className="min-h-0 flex-1" aria-hidden />
-      <div
+      <nav
         className={`mt-auto shrink-0 border-t border-app-border/55 pt-5 pb-1 ${iconOnly ? "px-1.5 lg:px-1" : "px-3"}`}
+        aria-label="Einstellungen"
       >
-        {userEmail ? (
-          <Link
-            href="/konto"
-            title={`Konto (${userEmail})`}
-            onClick={() => onNavigate?.()}
-            className={`group flex w-full min-w-0 items-start rounded-xl bg-app-card/80 px-3 py-3 text-left text-xs font-medium leading-snug text-app-muted ring-1 ring-app-border/70 transition hover:bg-app-card hover:text-app-ink hover:ring-app-primary/30 ${
-              iconOnly ? "justify-center px-2" : "gap-3"
-            }`}
-          >
-            <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-surface/80 text-app-primary ring-1 ring-app-border/50 transition group-hover:bg-app-surface`}
-            >
-              <IconEnvelope className="h-[1.15rem] w-[1.15rem]" />
-            </span>
-            <span
-              className={`min-w-0 break-all text-app-ink/90 ${iconOnly ? "sr-only" : ""}`}
-            >
-              {userEmail}
-            </span>
-          </Link>
-        ) : (
-          <Link
-            href="/konto"
-            onClick={() => onNavigate?.()}
-            className="block w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-app-muted ring-1 ring-app-border/60 hover:bg-app-card/90 hover:text-app-ink"
-          >
-            Konto
-          </Link>
-        )}
-      </div>
+        <NavButton
+          href="/konto"
+          fullWidth
+          iconOnly={iconOnly}
+          label="Einstellungen"
+          icon={<IconSettings className="h-[1.15rem] w-[1.15rem]" />}
+          onAfterNavigate={onNavigate}
+        />
+      </nav>
     </aside>
   );
 }
