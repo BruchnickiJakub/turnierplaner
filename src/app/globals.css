@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
+/* Warmes, ruhiges Schema: Leinen, Salbei, Terrakotta-Akzent */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-app-canvas);
+  --foreground: var(--color-app-ink);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-app-canvas);
+  --color-foreground: var(--color-app-ink);
+
+  --color-app-canvas: #e8e4db;
+  --color-app-sidebar: #ddd7cb;
+  --color-app-surface: #f3f0e8;
+  --color-app-card: #fffdf8;
+  --color-app-primary: #4d7c6f;
+  --color-app-primary-hover: #3f6559;
+  --color-app-accent: #c17f6a;
+  --color-app-accent-soft: #e8d4cc;
+  --color-app-ink: #2a312d;
+  --color-app-muted: #5c665f;
+  --color-app-subtle: #7a847b;
+  --color-app-border: #c9c2b5;
+  --color-app-ring: #8aa99a;
+  --color-app-logo: #355a52;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--color-app-canvas);
+  color: var(--color-app-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Turnier-Assistent: „Random generieren“ – kurzer visueller Schwung */
+@keyframes tw-shuffle-shell {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-app-primary) 0%, transparent);
+  }
+  35% {
+    transform: scale(1.008);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-app-primary) 22%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-app-primary) 0%, transparent);
+  }
+}
+
+@keyframes tw-shuffle-row {
+  0% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  22% {
+    transform: translateX(-5px);
+    filter: brightness(1.04);
+  }
+  55% {
+    transform: translateX(4px);
+    filter: brightness(1.06);
+  }
+  100% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes tw-shuffle-row-glow {
+  0% {
+    background-color: transparent;
+  }
+  40% {
+    background-color: color-mix(in srgb, var(--color-app-primary) 14%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.tw-shuffle-shell-active {
+  animation: tw-shuffle-shell 0.72s cubic-bezier(0.34, 1.3, 0.64, 1);
+  border-radius: 0.75rem;
+}
+
+.tw-shuffle-row-active {
+  animation:
+    tw-shuffle-row 0.58s cubic-bezier(0.33, 1.15, 0.53, 1) both,
+    tw-shuffle-row-glow 0.65s ease-out both;
+}
+
+@keyframes tw-shuffle-btn {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  35% {
+    transform: scale(0.96) rotate(-2deg);
+  }
+  65% {
+    transform: scale(1.04) rotate(1.5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.tw-shuffle-btn-active {
+  animation: tw-shuffle-btn 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-shuffle-shell-active,
+  .tw-shuffle-row-active,
+  .tw-shuffle-btn-active {
+    animation: none !important;
+  }
 }
