@@ -26,7 +26,13 @@ function IconMenu(props: { className?: string }) {
   );
 }
 
-export function AppLayoutShell({ children }: { children: React.ReactNode }) {
+export function AppLayoutShell({
+  children,
+  userEmail,
+}: {
+  children: React.ReactNode;
+  userEmail: string | null;
+}) {
   const isLg = useMediaQuery("(min-width: 1024px)");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
@@ -100,6 +106,7 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
       <AppSidebar
         displayMode={displayMode}
         drawerOpen={drawerOpen}
+        userEmail={userEmail}
         onNavigate={() => setDrawerOpen(false)}
       />
 

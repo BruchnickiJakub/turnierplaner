@@ -24,7 +24,7 @@ function IconQueueList(props: { className?: string }) {
   );
 }
 
-function IconUser(props: { className?: string }) {
+function IconEnvelope(props: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -38,7 +38,7 @@ function IconUser(props: { className?: string }) {
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
       />
     </svg>
   );
@@ -105,12 +105,14 @@ type SidebarProps = {
   displayMode: AppSidebarDisplayMode;
   /** Nur bei displayMode drawer: sichtbar */
   drawerOpen: boolean;
+  userEmail: string | null;
   onNavigate?: () => void;
 };
 
 export function AppSidebar({
   displayMode,
   drawerOpen,
+  userEmail,
   onNavigate,
 }: SidebarProps) {
   const iconOnly = displayMode === "compact";
@@ -146,19 +148,39 @@ export function AppSidebar({
         />
       </nav>
       <div className="min-h-0 flex-1" aria-hidden />
-      <nav
+      <div
         className={`mt-auto shrink-0 border-t border-app-border/55 pt-5 pb-1 ${iconOnly ? "px-1.5 lg:px-1" : "px-3"}`}
-        aria-label="Konto"
       >
-        <NavButton
-          href="/konto"
-          fullWidth
-          iconOnly={iconOnly}
-          label="Konto"
-          icon={<IconUser className="h-[1.15rem] w-[1.15rem]" />}
-          onAfterNavigate={onNavigate}
-        />
-      </nav>
+        {userEmail ? (
+          <Link
+            href="/konto"
+            title={`Konto (${userEmail})`}
+            onClick={() => onNavigate?.()}
+            className={`group flex w-full min-w-0 items-start rounded-xl bg-app-card/80 px-3 py-3 text-left text-xs font-medium leading-snug text-app-muted ring-1 ring-app-border/70 transition hover:bg-app-card hover:text-app-ink hover:ring-app-primary/30 ${
+              iconOnly ? "justify-center px-2" : "gap-3"
+            }`}
+          >
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-surface/80 text-app-primary ring-1 ring-app-border/50 transition group-hover:bg-app-surface`}
+            >
+              <IconEnvelope className="h-[1.15rem] w-[1.15rem]" />
+            </span>
+            <span
+              className={`min-w-0 break-all text-app-ink/90 ${iconOnly ? "sr-only" : ""}`}
+            >
+              {userEmail}
+            </span>
+          </Link>
+        ) : (
+          <Link
+            href="/konto"
+            onClick={() => onNavigate?.()}
+            className="block w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-app-muted ring-1 ring-app-border/60 hover:bg-app-card/90 hover:text-app-ink"
+          >
+            Konto
+          </Link>
+        )}
+      </div>
     </aside>
   );
 }
