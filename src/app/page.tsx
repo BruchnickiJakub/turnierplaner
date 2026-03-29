@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex min-h-dvh flex-1 flex-col items-center justify-center bg-app-canvas px-6 py-16">
+    <div className="flex min-h-dvh flex-1 flex-col items-center justify-center bg-app-canvas px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-6 sm:py-16">
       <main className="w-full max-w-lg text-center">
         <p className="text-sm font-medium uppercase tracking-wide text-app-subtle">
           Willkommen

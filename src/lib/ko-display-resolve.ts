@@ -69,12 +69,17 @@ function slotAtTablePlacement(
 /**
  * Liefert je KO-Spiel angezeigte Teamnamen: aus Vorrunden-Tabellen und
  * aus „Sieger/Verlierer …“ sobald Vorläufer-Spiele entschieden sind.
+ *
+ * @param resolveGroupPlacements – Wenn false, werden Platzhalter wie
+ * „1. Platz Gruppe A“ noch nicht in Teilnehmernamen aufgelöst (sinnvoll,
+ * solange in der Vorrunde noch kein einziges Ergebnis eingetragen wurde).
  */
 export function computeKoMatchDisplays(
   koMatches: MatchLite[],
   standingsBlocks: KoStandingsBlock[],
   participantNames: string[],
   countingMode: CountingMode,
+  resolveGroupPlacements: boolean,
 ): Map<string, { home: KoDisplaySide; away: KoDisplaySide }> {
   const sorted = [...koMatches].sort((a, b) => a.sort_index - b.sort_index);
   const vfList = sorted.filter((m) => m.group_code === "VF");
@@ -119,6 +124,7 @@ export function computeKoMatchDisplays(
 
     const mg = label.match(/^(\d+)\.\s*Platz\s+Gruppe\s+([A-Za-z])$/i);
     if (mg) {
+      if (!resolveGroupPlacements) return null;
       const place = parseInt(mg[1]!, 10);
       const letter = mg[2]!.toUpperCase();
       const rows = groupRowsMap.get(letter);
@@ -128,6 +134,7 @@ export function computeKoMatchDisplays(
 
     const mv = label.match(/^(\d+)\.\s*Platz\s+Vorrunde$/i);
     if (mv) {
+      if (!resolveGroupPlacements) return null;
       const place = parseInt(mv[1]!, 10);
       if (!singleRows) return null;
       return slotAtTablePlacement(singleRows, place);

@@ -315,7 +315,7 @@ export function TournamentWizard({ mode, initial }: Props) {
       ) : null}
 
       {step === 1 ? (
-        <div className="mt-6 grid gap-6 lg:max-w-3xl">
+        <div className="mt-6 grid w-full max-w-full gap-6 lg:max-w-3xl">
           <div>
             <label htmlFor="tw-title" className={labelClass}>
               Name des Turniers <span className="text-app-accent">*</span>

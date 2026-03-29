@@ -62,15 +62,20 @@ function matchSideLabel(
 }
 
 const cardShell =
-  "rounded-2xl bg-app-card/70 p-5 shadow-sm ring-1 ring-app-border/60 sm:p-6";
+  "rounded-2xl bg-app-card/70 p-4 shadow-sm ring-1 ring-app-border/60 sm:p-6";
 
 const inputScoreClass =
-  "w-11 rounded-xl border border-app-border/90 bg-app-card px-2 py-2 text-center text-sm font-medium text-app-ink tabular-nums shadow-sm outline-none transition focus:border-app-primary focus:ring-2 focus:ring-app-ring/40";
+  "h-11 w-12 min-h-11 min-w-11 touch-manipulation rounded-xl border border-app-border/90 bg-app-card px-2 py-2 text-center text-sm font-medium text-app-ink tabular-nums shadow-sm outline-none transition focus:border-app-primary focus:ring-2 focus:ring-app-ring/40 sm:h-auto sm:min-h-0 sm:w-11 sm:min-w-11";
 
 const thSchedule =
-  "border-b border-app-border/70 bg-app-surface/85 px-3 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted first:pl-4 last:pr-4 sm:px-4";
+  "border-b border-app-border/70 bg-app-surface/85 px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted sm:px-3 sm:py-3.5";
+const thScheduleCenter =
+  thSchedule + " text-center";
+const thScheduleLeft = thSchedule + " text-left";
 const tdSchedule =
-  "border-b border-app-border/40 px-3 py-3 text-sm text-app-ink first:pl-4 last:pr-4 sm:px-4";
+  "border-b border-app-border/40 px-2 py-2.5 text-sm text-app-ink sm:px-3 sm:py-3";
+const tdScheduleCenter = tdSchedule + " text-center tabular-nums";
+const tdScheduleLeft = tdSchedule + " text-left";
 
 const thTable =
   "border-b border-app-border/70 bg-app-surface/85 px-2 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted first:pl-3 last:pr-3 sm:px-3";
@@ -297,6 +302,14 @@ export function VorrundePlan({
     [koMatches, drafts],
   );
 
+  const resolveKoGroupPlacements = useMemo(
+    () =>
+      standingMatches.some(
+        (m) => m.goals_home != null && m.goals_away != null,
+      ),
+    [standingMatches],
+  );
+
   const koDisplayById = useMemo(
     () =>
       koMatchesForDisplay.length > 0
@@ -305,6 +318,7 @@ export function VorrundePlan({
             standingsBlocks,
             participantNames,
             countingMode,
+            resolveKoGroupPlacements,
           )
         : new Map<string, { home: KoDisplaySide; away: KoDisplaySide }>(),
     [
@@ -312,6 +326,7 @@ export function VorrundePlan({
       standingsBlocks,
       participantNames,
       countingMode,
+      resolveKoGroupPlacements,
     ],
   );
 
@@ -334,21 +349,34 @@ export function VorrundePlan({
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12 lg:items-start">
+      <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
         <div className="min-w-0 space-y-6">
           <div className={cardShell}>
             <h3 className="mb-5 text-sm font-semibold tracking-wide text-app-ink">
               Vorrunde — Ergebnisse
             </h3>
-            <div className="-mx-1 overflow-x-auto sm:mx-0">
-              <table className="w-full min-w-[420px] border-collapse text-left">
+            <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
+              <table className="w-full min-w-[420px] border-collapse">
+                <colgroup>
+                  <col className="w-[3rem] sm:w-14" />
+                  <col className="w-[3rem] sm:w-14" />
+                  <col className="w-[3.25rem] sm:w-16" />
+                  <col />
+                  <col className="w-[7.25rem] sm:w-[8rem]" />
+                </colgroup>
                 <thead>
                   <tr className="shadow-sm shadow-app-ink/5">
-                    <th className={thSchedule}>Nr.</th>
-                    <th className={thSchedule}>Feld</th>
-                    <th className={thSchedule}>Gr.</th>
-                    <th className={thSchedule}>Spiel</th>
-                    <th className={thSchedule + " min-w-[6.5rem]"}>Ergebnis</th>
+                    <th className={thScheduleCenter}>Nr.</th>
+                    <th className={thScheduleCenter}>Feld</th>
+                    <th className={thScheduleCenter}>Gr.</th>
+                    <th className={thScheduleLeft}>Spiel</th>
+                    <th
+                      className={thScheduleCenter + " min-w-0"}
+                      title="Ergebnis"
+                    >
+                      <span className="sm:hidden">Erg.</span>
+                      <span className="hidden sm:inline">Ergebnis</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-app-card/40">
@@ -370,24 +398,28 @@ export function VorrundePlan({
                       rowIdx % 2 === 0 ? "bg-app-card/80" : "bg-app-surface/20";
                     return (
                       <tr key={m.id} className={zebra}>
-                        <td className={tdSchedule + " tabular-nums text-app-muted"}>
+                        <td className={tdScheduleCenter + " text-app-muted"}>
                           {nr}
                         </td>
-                        <td className={tdSchedule + " tabular-nums text-app-muted"}>
+                        <td className={tdScheduleCenter + " text-app-muted"}>
                           {m.pitch}
                         </td>
-                        <td className={tdSchedule}>
+                        <td className={tdScheduleCenter}>
                           <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-md bg-app-surface/90 px-1.5 py-0.5 text-xs font-semibold text-app-ink ring-1 ring-app-border/60">
                             {gLabel}
                           </span>
                         </td>
-                        <td className={tdSchedule}>
-                          <span className="font-medium text-app-ink">{home}</span>
-                          <span className="mx-1.5 text-app-subtle">vs.</span>
-                          <span className="font-medium text-app-ink">{away}</span>
+                        <td className={tdScheduleLeft + " min-w-0 max-w-[11rem] sm:max-w-none"}>
+                          <div className="break-words leading-snug">
+                            <span className="font-medium text-app-ink">{home}</span>
+                            <span className="mx-1 text-app-subtle sm:mx-1.5">
+                              vs.
+                            </span>
+                            <span className="font-medium text-app-ink">{away}</span>
+                          </div>
                         </td>
-                        <td className={tdSchedule}>
-                          <div className="flex items-center justify-end gap-2 sm:justify-start">
+                        <td className={tdScheduleCenter}>
+                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                             <input
                               type="text"
                               inputMode="numeric"
@@ -452,15 +484,28 @@ export function VorrundePlan({
                 Platzhalter werden aus Vorrunden-Tabellen und Sieger der
                 Vorpartien ergänzt, sobald die Ergebnisse da sind.
               </p>
-              <div className="-mx-1 overflow-x-auto sm:mx-0">
-                <table className="w-full min-w-[420px] border-collapse text-left">
+              <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
+                <table className="w-full min-w-[420px] border-collapse">
+                  <colgroup>
+                    <col className="w-[3rem] sm:w-14" />
+                    <col className="w-[3rem] sm:w-14" />
+                    <col className="w-14 sm:w-[4.25rem]" />
+                    <col />
+                    <col className="w-[7.25rem] sm:w-[8rem]" />
+                  </colgroup>
                   <thead>
                     <tr className="shadow-sm shadow-app-ink/5">
-                      <th className={thSchedule}>Nr.</th>
-                      <th className={thSchedule}>Feld</th>
-                      <th className={thSchedule}>Runde</th>
-                      <th className={thSchedule}>Spiel</th>
-                      <th className={thSchedule + " min-w-[6.5rem]"}>Ergebnis</th>
+                      <th className={thScheduleCenter}>Nr.</th>
+                      <th className={thScheduleCenter}>Feld</th>
+                      <th className={thScheduleCenter}>Runde</th>
+                      <th className={thScheduleLeft}>Spiel</th>
+                      <th
+                        className={thScheduleCenter + " min-w-0"}
+                        title="Ergebnis"
+                      >
+                        <span className="sm:hidden">Erg.</span>
+                        <span className="hidden sm:inline">Ergebnis</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-app-card/40">
@@ -489,40 +534,46 @@ export function VorrundePlan({
                         rowIdx % 2 === 0 ? "bg-app-card/80" : "bg-app-surface/20";
                       return (
                         <tr key={m.id} className={zebra}>
-                          <td className={tdSchedule + " tabular-nums text-app-muted"}>
+                          <td className={tdScheduleCenter + " text-app-muted"}>
                             {nr}
                           </td>
-                          <td className={tdSchedule + " tabular-nums text-app-muted"}>
+                          <td className={tdScheduleCenter + " text-app-muted"}>
                             {m.pitch}
                           </td>
-                          <td className={tdSchedule}>
+                          <td className={tdScheduleCenter}>
                             <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-md bg-app-surface/90 px-1.5 py-0.5 text-xs font-semibold text-app-ink ring-1 ring-app-border/60">
                               {gLabel}
                             </span>
                           </td>
-                          <td className={tdSchedule}>
-                            <span
-                              className={
-                                homeDisp.resolved
-                                  ? "font-medium text-app-ink"
-                                  : "font-medium text-app-ink/45"
-                              }
-                            >
-                              {homeDisp.primary}
-                            </span>
-                            <span className="mx-1.5 text-app-subtle/80">vs.</span>
-                            <span
-                              className={
-                                awayDisp.resolved
-                                  ? "font-medium text-app-ink"
-                                  : "font-medium text-app-ink/45"
-                              }
-                            >
-                              {awayDisp.primary}
-                            </span>
+                          <td
+                            className={tdScheduleLeft + " min-w-0 max-w-[11rem] sm:max-w-none"}
+                          >
+                            <div className="break-words leading-snug">
+                              <span
+                                className={
+                                  homeDisp.resolved
+                                    ? "font-medium text-app-ink"
+                                    : "font-medium text-app-ink/45"
+                                }
+                              >
+                                {homeDisp.primary}
+                              </span>
+                              <span className="mx-1 text-app-subtle/80 sm:mx-1.5">
+                                vs.
+                              </span>
+                              <span
+                                className={
+                                  awayDisp.resolved
+                                    ? "font-medium text-app-ink"
+                                    : "font-medium text-app-ink/45"
+                                }
+                              >
+                                {awayDisp.primary}
+                              </span>
+                            </div>
                           </td>
-                          <td className={tdSchedule}>
-                            <div className="flex items-center justify-end gap-2 sm:justify-start">
+                          <td className={tdScheduleCenter}>
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                               <input
                                 type="text"
                                 inputMode="numeric"

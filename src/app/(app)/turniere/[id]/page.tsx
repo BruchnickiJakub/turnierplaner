@@ -76,25 +76,19 @@ export default async function TurnierDetailPage({ params }: Props) {
   });
 
   const btnOutline =
-    "inline-flex items-center justify-center rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium text-app-ink shadow-sm transition hover:border-app-primary/40";
+    "inline-flex min-h-11 items-center justify-center rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium text-app-ink shadow-sm transition hover:border-app-primary/40 active:scale-[0.99] sm:min-h-0";
   const btnPrimary =
-    "inline-flex items-center justify-center rounded-xl bg-app-primary px-4 py-2.5 text-sm font-medium text-app-card shadow-md shadow-app-primary/20 transition hover:bg-app-primary-hover";
+    "inline-flex min-h-11 items-center justify-center rounded-xl bg-app-primary px-4 py-2.5 text-sm font-medium text-app-card shadow-md shadow-app-primary/20 transition hover:bg-app-primary-hover active:scale-[0.99] sm:min-h-0";
 
   return (
-    <div className="w-full px-6 py-10 lg:px-10">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="w-full px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-10">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <Link href="/turniere" className={btnOutline} prefetch>
           ← Alle Turniere
         </Link>
         <Link href={`/turniere/${id}/bearbeiten`} className={btnPrimary} prefetch>
           Bearbeiten
         </Link>
-        {tn >= 2 &&
-        !names.every((x) => !String(x).trim()) &&
-        schedHint.ok &&
-        !matchesError ? (
-          <ResetTournamentResultsButton tournamentId={id} />
-        ) : null}
       </div>
       <h1 className="mt-8 text-2xl font-semibold text-app-ink">{t.title}</h1>
 
@@ -136,7 +130,17 @@ export default async function TurnierDetailPage({ params }: Props) {
       </div>
 
       <div className="mt-10 border-t border-app-border/70 pt-8">
-        <DeleteTournamentForm tournamentId={id} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          {tn >= 2 &&
+          !names.every((x) => !String(x).trim()) &&
+          schedHint.ok &&
+          !matchesError ? (
+            <ResetTournamentResultsButton tournamentId={id} />
+          ) : null}
+          <div className="sm:shrink-0">
+            <DeleteTournamentForm tournamentId={id} />
+          </div>
+        </div>
       </div>
     </div>
   );

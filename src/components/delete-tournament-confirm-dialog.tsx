@@ -43,12 +43,12 @@ export function DeleteTournamentConfirmDialog({
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-app-ink/45 p-4 backdrop-blur-[3px]"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-app-ink/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[3px] sm:items-center sm:pb-4"
           role="presentation"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-app-border/95 bg-app-card p-6 shadow-2xl shadow-app-ink/20 ring-1 ring-app-border/40"
+            className="max-h-[min(85dvh,calc(100%-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-app-border/95 bg-app-card p-5 shadow-2xl shadow-app-ink/20 ring-1 ring-app-border/40 sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -64,18 +64,21 @@ export function DeleteTournamentConfirmDialog({
               Dieses Turnier und alle zugehörigen Daten werden dauerhaft
               entfernt. Diese Aktion kann nicht rückgängig gemacht werden.
             </p>
-            <form action={deleteTournament} className="mt-8 flex flex-wrap justify-end gap-3">
+            <form
+              action={deleteTournament}
+              className="mt-6 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3"
+            >
               <input type="hidden" name="id" value={tournamentId} />
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium text-app-ink shadow-sm transition hover:bg-app-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ring/45"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium text-app-ink shadow-sm transition hover:bg-app-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ring/45 sm:w-auto sm:min-h-0"
                 onClick={() => setOpen(false)}
               >
                 Abbrechen
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-xl border border-red-400/90 bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-900/25 transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-400/90 bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-900/25 transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 sm:w-auto sm:min-h-0"
               >
                 Endgültig löschen
               </button>

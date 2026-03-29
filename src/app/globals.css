@@ -40,6 +40,14 @@ body {
   background: var(--color-app-canvas);
   color: var(--color-app-ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 1023px) {
+  html {
+    overflow-x: hidden;
+  }
 }
 
 /* Turnier-Assistent: „Random generieren“ – kurzer visueller Schwung */

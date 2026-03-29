@@ -32,7 +32,7 @@ export default async function TurnierePage() {
     "inline-flex items-center justify-center rounded-xl border border-app-border bg-app-card px-4 py-2 text-sm font-medium text-app-ink shadow-sm transition hover:border-app-primary/40 hover:bg-app-surface/50";
 
   return (
-    <div className="w-full px-6 py-10 lg:px-10">
+    <div className="w-full px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-10">
       <header className="flex flex-col gap-4 border-b border-app-border/80 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-app-ink">Meine Turniere</h1>

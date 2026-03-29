@@ -49,11 +49,15 @@ function NavButton({
   label,
   icon,
   fullWidth,
+  iconOnly,
+  onAfterNavigate,
 }: {
   href: string;
   label: string;
   icon: React.ReactNode;
   fullWidth?: boolean;
+  iconOnly?: boolean;
+  onAfterNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const active =
@@ -61,12 +65,20 @@ function NavButton({
       ? pathname === "/turniere"
       : pathname === href || pathname.startsWith(href + "/");
 
-  const layout = fullWidth ? "w-full justify-start px-4 py-3" : "px-4 py-2.5";
+  const layout = iconOnly
+    ? "w-full justify-center px-2 py-3"
+    : fullWidth
+      ? "w-full justify-start px-4 py-3"
+      : "px-4 py-2.5";
 
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 text-sm font-semibold tracking-tight transition-all duration-200 ${layout} rounded-xl ${
+      title={label}
+      onClick={() => onAfterNavigate?.()}
+      className={`group flex items-center text-sm font-semibold tracking-tight transition-all duration-200 ${
+        iconOnly ? "gap-0" : "gap-3"
+      } ${layout} rounded-xl ${
         active
           ? "bg-gradient-to-br from-app-primary to-app-primary-hover text-app-card shadow-lg shadow-app-primary/30 ring-2 ring-white/25"
           : "bg-app-card/95 text-app-ink shadow-sm ring-1 ring-app-border/85 hover:bg-app-card hover:shadow-md hover:ring-app-primary/25"
@@ -81,35 +93,70 @@ function NavButton({
       >
         {icon}
       </span>
-      <span>{label}</span>
+      <span className={iconOnly ? "sr-only" : ""}>{label}</span>
     </Link>
   );
 }
 
-export function AppSidebar() {
+export type AppSidebarDisplayMode = "drawer" | "expanded" | "compact";
+
+type SidebarProps = {
+  /** drawer = Schublade &lt; lg; expanded/compact = feste Spalte ab lg */
+  displayMode: AppSidebarDisplayMode;
+  /** Nur bei displayMode drawer: sichtbar */
+  drawerOpen: boolean;
+  onNavigate?: () => void;
+};
+
+export function AppSidebar({
+  displayMode,
+  drawerOpen,
+  onNavigate,
+}: SidebarProps) {
+  const iconOnly = displayMode === "compact";
+  const isDrawer = displayMode === "drawer";
+
   return (
-    <aside className="sticky top-0 flex h-dvh w-72 shrink-0 flex-col overflow-y-auto border-r border-app-border/70 bg-gradient-to-b from-app-sidebar via-app-sidebar to-app-sidebar/95 py-6 shadow-sm">
-      <div className="px-4">
-        <BrandLogo />
+    <aside
+      id="app-sidebar-drawer"
+      data-mode={displayMode}
+      data-open={drawerOpen ? "true" : "false"}
+      className={`sticky top-0 z-50 flex h-dvh shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-app-border/70 bg-gradient-to-b from-app-sidebar via-app-sidebar to-app-sidebar/95 py-6 shadow-sm transition-[width] duration-300 ease-out
+        max-lg:fixed max-lg:left-0 max-lg:top-0 max-lg:w-[min(18rem,calc(100vw-1rem))] max-lg:pt-[max(1.5rem,env(safe-area-inset-top))] max-lg:pb-[env(safe-area-inset-bottom)] max-lg:transition-[transform,visibility] max-lg:duration-300 max-lg:ease-out
+        lg:translate-x-0 lg:pointer-events-auto lg:visible
+        ${isDrawer && drawerOpen ? "max-lg:translate-x-0 max-lg:visible" : ""}
+        ${isDrawer && !drawerOpen ? "max-lg:pointer-events-none max-lg:invisible max-lg:-translate-x-full" : ""}
+        ${displayMode === "compact" ? "lg:w-[4.5rem]" : "lg:w-72"}
+      `}
+    >
+      <div className={`shrink-0 ${iconOnly ? "px-2 lg:px-1.5" : "px-4"}`}>
+        <BrandLogo compact={iconOnly} className={iconOnly ? "w-full" : ""} />
       </div>
-      <nav className="mt-10 flex flex-col gap-2.5 px-3" aria-label="Hauptmenü">
+      <nav
+        className={`mt-10 flex flex-col gap-2.5 ${iconOnly ? "px-1.5 lg:px-1" : "px-3"}`}
+        aria-label="Hauptmenü"
+      >
         <NavButton
           href="/turniere"
           fullWidth
+          iconOnly={iconOnly}
           label="Turnierliste"
           icon={<IconQueueList className="h-[1.15rem] w-[1.15rem]" />}
+          onAfterNavigate={onNavigate}
         />
       </nav>
       <div className="min-h-0 flex-1" aria-hidden />
       <nav
-        className="mt-auto border-t border-app-border/55 px-3 pt-5 pb-1"
+        className={`mt-auto shrink-0 border-t border-app-border/55 pt-5 pb-1 ${iconOnly ? "px-1.5 lg:px-1" : "px-3"}`}
         aria-label="Konto"
       >
         <NavButton
           href="/konto"
           fullWidth
+          iconOnly={iconOnly}
           label="Konto"
           icon={<IconUser className="h-[1.15rem] w-[1.15rem]" />}
+          onAfterNavigate={onNavigate}
         />
       </nav>
     </aside>

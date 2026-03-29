@@ -44,12 +44,12 @@ export default async function TurnierBearbeitenPage({ params }: Props) {
   const ptsPreset = normalizeGroupPointsPreset(t.group_points_preset);
 
   return (
-    <div className="w-full px-6 py-10 lg:px-10">
+    <div className="w-full px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-10">
       <TournamentEditNav tournamentId={id} />
       <h1 className="mt-8 text-2xl font-semibold text-app-ink">
         Turnier bearbeiten
       </h1>
-      <div className="mt-8 w-full rounded-2xl border border-app-border/90 bg-app-card p-6 shadow-sm sm:p-8">
+      <div className="mt-8 w-full rounded-2xl border border-app-border/90 bg-app-card p-4 shadow-sm sm:p-8">
         <TournamentWizard
           mode="edit"
           initial={{

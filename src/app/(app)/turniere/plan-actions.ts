@@ -9,12 +9,25 @@ export type PlanActionResult =
   | { ok: true }
   | { ok: false; error: string };
 
+type MatchInsertRow = {
+  tournament_id: string;
+  sort_index: number;
+  match_phase: string;
+  group_code: string;
+  pitch: number;
+  start_time: string | null;
+  slot_home: number | null;
+  slot_away: number | null;
+  label_home: string | null;
+  label_away: string | null;
+};
+
 function buildMatchInsertRows(
   tournamentId: string,
   modusKey: string,
   teamCount: number,
   courtCount: number,
-) {
+): MatchInsertRow[] {
   const courts = Math.min(99, Math.max(1, Math.floor(courtCount)));
   return buildFullMatchPlan(modusKey || "rr_1", teamCount, courts).map(
     (r) => ({
@@ -30,6 +43,60 @@ function buildMatchInsertRows(
       label_away: r.label_away,
     }),
   );
+}
+
+function validateDistinctSortIndices(rows: MatchInsertRow[]): string | null {
+  const seen = new Set<number>();
+  for (const r of rows) {
+    if (seen.has(r.sort_index)) {
+      return `Interner Fehler: doppelter Spiel-Index (${r.sort_index}). Bitte melden.`;
+    }
+    seen.add(r.sort_index);
+  }
+  return null;
+}
+
+function isUniqueViolation(err: { message?: string; code?: string }): boolean {
+  if (err.code === "23505") return true;
+  const m = err.message ?? "";
+  return m.includes("duplicate key") || m.includes("unique constraint");
+}
+
+type DbClient = Awaited<ReturnType<typeof createClient>>;
+
+/** Löscht alle Spiele des Turniers und fügt neu ein; bei Kollision (z. B. Races) einmal wiederholen. */
+async function deleteAllMatchRows(
+  supabase: DbClient,
+  tournamentId: string,
+): Promise<{ error: { message: string } | null }> {
+  const { error } = await supabase
+    .from("tournament_matches")
+    .delete()
+    .eq("tournament_id", tournamentId);
+  return { error: error ? { message: error.message } : null };
+}
+
+async function insertMatchRowsWithRetry(
+  supabase: DbClient,
+  tournamentId: string,
+  rows: MatchInsertRow[],
+): Promise<{ error: { message: string } | null }> {
+  const run = async () => {
+    const del = await deleteAllMatchRows(supabase, tournamentId);
+    if (del.error) return del;
+    const { error } = await supabase.from("tournament_matches").insert(rows);
+    return {
+      error: error
+        ? { message: error.message, code: error.code }
+        : null,
+    };
+  };
+
+  let out = await run();
+  if (out.error && isUniqueViolation(out.error)) {
+    out = await run();
+  }
+  return out;
 }
 
 /** Löscht alle Spiele und legt den Plan neu an (z. B. nach geänderten Turnier-Einstellungen). */
@@ -54,15 +121,12 @@ export async function replaceTournamentMatchPlan(
   if (te || !t) return { ok: false, error: "Turnier nicht gefunden." };
   if (t.user_id !== user.id) return { ok: false, error: "Kein Zugriff." };
 
-  const { error: de } = await supabase
-    .from("tournament_matches")
-    .delete()
-    .eq("tournament_id", tournamentId);
-
-  if (de) return { ok: false, error: de.message };
-
   const n = teamCount;
-  if (n < 2) return { ok: true };
+  if (n < 2) {
+    const empty = await deleteAllMatchRows(supabase, tournamentId);
+    if (empty.error) return { ok: false, error: empty.error.message };
+    return { ok: true };
+  }
 
   const rows = buildMatchInsertRows(
     tournamentId,
@@ -72,7 +136,10 @@ export async function replaceTournamentMatchPlan(
   );
   if (rows.length === 0) return { ok: true };
 
-  const { error: ie } = await supabase.from("tournament_matches").insert(rows);
+  const bad = validateDistinctSortIndices(rows);
+  if (bad) return { ok: false, error: bad };
+
+  const { error: ie } = await insertMatchRowsWithRetry(supabase, tournamentId, rows);
   if (ie) return { ok: false, error: ie.message };
 
   return { ok: true };
@@ -118,7 +185,12 @@ export async function ensureVorrundeSchedule(
 
   if (rows.length === 0) return { ok: true };
 
-  const { error: ie } = await supabase.from("tournament_matches").insert(rows);
+  const bad = validateDistinctSortIndices(rows);
+  if (bad) return { ok: false, error: bad };
+
+  // Leeren + einfügen: verhindert „duplicate key“, wenn parallel noch Zeilen angelegt wurden
+  // oder die Zählung und der echte Zustand kurz auseinanderliegen.
+  const { error: ie } = await insertMatchRowsWithRetry(supabase, tournamentId, rows);
   if (ie) return { ok: false, error: ie.message };
 
   // Kein revalidatePath: Diese Funktion wird beim Rendern der Detailseite aufgerufen;

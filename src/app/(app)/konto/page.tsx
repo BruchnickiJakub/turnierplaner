@@ -18,7 +18,7 @@ export default async function KontoPage() {
     "inline-flex items-center justify-center rounded-xl border border-red-400/85 bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-900/20 transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/55";
 
   return (
-    <div className="min-h-dvh w-full px-5 py-10 sm:px-8 lg:px-12">
+    <div className="min-h-dvh w-full px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-10 lg:px-12">
       <div className="mx-auto max-w-4xl">
         <header className="border-b border-app-border/80 pb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-app-ink">
