@@ -105,30 +105,28 @@ const inputScoreClass =
   "h-11 w-12 min-h-11 min-w-11 touch-manipulation rounded-xl border border-app-border/90 bg-app-card px-2 py-2 text-center text-sm font-medium text-app-ink tabular-nums shadow-sm outline-none transition focus:border-app-primary focus:ring-2 focus:ring-app-ring/40 sm:h-auto sm:min-h-0 sm:w-11 sm:min-w-11";
 
 const thSchedule =
-  "border-b border-app-border/70 bg-app-surface/85 px-1.5 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted sm:px-2 sm:py-2.5";
+  "border-b border-app-border/70 bg-app-surface/85 px-2.5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-app-muted sm:px-3 sm:py-3.5";
+/** Kopfzellen: immer mittig (auch falls globale TH-Styles greifen) */
 const thScheduleCenter =
-  thSchedule + " text-center";
-const thScheduleLeft = thSchedule + " text-left";
-/** Kopf über Torfeldern: rechts bündig zu den Inputs */
-const thScheduleScore = thSchedule + " text-right pr-1 sm:pr-2";
+  thSchedule + " text-center align-middle [text-align:center]";
 const tdSchedule =
-  "border-b border-app-border/40 px-1.5 py-2 align-middle text-sm text-app-ink sm:px-2 sm:py-2.5";
-const tdScheduleCenter = tdSchedule + " text-center tabular-nums";
-const tdScheduleLeft = tdSchedule + " text-left";
-/** Ergebniszelle: rechts ausgerichtet, kompakt neben der Spiel-Spalte */
-const tdScheduleScore =
-  tdSchedule + " text-right tabular-nums";
+  "border-b border-app-border/40 px-2.5 py-3 align-middle text-sm text-app-ink sm:px-3 sm:py-3.5 [text-align:center]";
+const tdScheduleCenter = tdSchedule + " tabular-nums";
+/** Paarungen: mehrzeilig, Inhalt mittig unter „Spiel“ */
+const tdScheduleSpiel = tdSchedule + " min-w-0 max-w-none";
+/** Ergebnis */
+const tdScheduleScore = tdSchedule + " tabular-nums";
 
-/** Einheitliche Spalten: feste Anteile summieren 100 %, kein leeres Loch vor dem Ergebnis. */
+/** Spaltenanteile: Nr/Feld/Zeit/Gr ausgewogen, Spiel & Ergebnis ohne extremen Leerraum. */
 function ScheduleColgroup() {
   return (
     <colgroup>
-      <col style={{ width: "6%" }} />
-      <col style={{ width: "6%" }} />
-      <col style={{ width: "11%" }} />
-      <col style={{ width: "8%" }} />
-      <col style={{ width: "41%" }} />
-      <col style={{ width: "28%" }} />
+      <col style={{ width: "7%" }} />
+      <col style={{ width: "7%" }} />
+      <col style={{ width: "12%" }} />
+      <col style={{ width: "10%" }} />
+      <col style={{ width: "39%" }} />
+      <col style={{ width: "25%" }} />
     </colgroup>
   );
 }
@@ -525,17 +523,17 @@ export function VorrundePlan({
               Vorrunde — Ergebnisse
             </h3>
             <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
-              <table className="w-full min-w-[400px] table-fixed border-collapse sm:min-w-[460px]">
+              <table className="w-full min-w-[440px] table-fixed border-collapse sm:min-w-[520px]">
                 <ScheduleColgroup />
                 <thead>
-                  <tr className="shadow-sm shadow-app-ink/5">
+                  <tr className="shadow-sm shadow-app-ink/5 [&_th]:text-center">
                     <th className={thScheduleCenter}>Nr.</th>
                     <th className={thScheduleCenter}>Feld</th>
                     <th className={thScheduleCenter}>Zeit</th>
                     <th className={thScheduleCenter}>Gr.</th>
-                    <th className={thScheduleLeft}>Spiel</th>
+                    <th className={thScheduleCenter}>Spiel</th>
                     <th
-                      className={thScheduleScore}
+                      className={thScheduleCenter}
                       title="Ergebnis"
                     >
                       <span className="sm:hidden">Erg.</span>
@@ -543,7 +541,7 @@ export function VorrundePlan({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-app-card/40">
+                <tbody className="bg-app-card/40 [&_td]:text-center">
                   {groupMatches.map((m, rowIdx) => {
                     const dr = drafts[m.id] ?? { h: "", a: "" };
                     const nr = firstMatchNumber + m.sort_index;
@@ -578,10 +576,10 @@ export function VorrundePlan({
                             {gLabel}
                           </span>
                         </td>
-                        <td className={tdScheduleLeft + " min-w-0 pr-1 sm:pr-2"}>
-                          <div className="break-words leading-snug">
+                        <td className={tdScheduleSpiel}>
+                          <div className="break-words leading-relaxed text-center">
                             <span className="font-medium text-app-ink">{home}</span>
-                            <span className="mx-1 text-app-subtle sm:mx-1.5">
+                            <span className="mx-1.5 text-app-subtle sm:mx-2">
                               vs.
                             </span>
                             <span className="font-medium text-app-ink">{away}</span>
@@ -589,7 +587,7 @@ export function VorrundePlan({
                         </td>
                         <td className={tdScheduleScore}>
                           {readOnly ? (
-                            <div className="flex items-center justify-end gap-1 tabular-nums text-sm font-medium text-app-ink sm:gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium text-app-ink sm:gap-2">
                               {m.goals_home != null && m.goals_away != null ? (
                                 <>
                                   <span>{m.goals_home}</span>
@@ -603,7 +601,7 @@ export function VorrundePlan({
                               )}
                             </div>
                           ) : (
-                            <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                               <input
                                 type="text"
                                 inputMode="numeric"
@@ -672,17 +670,17 @@ export function VorrundePlan({
                 Vorpartien ergänzt, sobald die Ergebnisse da sind.
               </p>
               <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
-                <table className="w-full min-w-[400px] table-fixed border-collapse sm:min-w-[460px]">
+                <table className="w-full min-w-[440px] table-fixed border-collapse sm:min-w-[520px]">
                   <ScheduleColgroup />
                   <thead>
-                    <tr className="shadow-sm shadow-app-ink/5">
+                    <tr className="shadow-sm shadow-app-ink/5 [&_th]:text-center">
                       <th className={thScheduleCenter}>Nr.</th>
                       <th className={thScheduleCenter}>Feld</th>
                       <th className={thScheduleCenter}>Zeit</th>
                       <th className={thScheduleCenter}>Runde</th>
-                      <th className={thScheduleLeft}>Spiel</th>
+                      <th className={thScheduleCenter}>Spiel</th>
                       <th
-                        className={thScheduleScore}
+                        className={thScheduleCenter}
                         title="Ergebnis"
                       >
                         <span className="sm:hidden">Erg.</span>
@@ -690,7 +688,7 @@ export function VorrundePlan({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-app-card/40">
+                  <tbody className="bg-app-card/40 [&_td]:text-center">
                     {koMatches.map((m, rowIdx) => {
                       const dr = drafts[m.id] ?? { h: "", a: "" };
                       const nr = firstMatchNumber + m.sort_index;
@@ -735,8 +733,8 @@ export function VorrundePlan({
                               {gLabel}
                             </span>
                           </td>
-                          <td className={tdScheduleLeft + " min-w-0 pr-1 sm:pr-2"}>
-                            <div className="break-words leading-snug">
+                          <td className={tdScheduleSpiel}>
+                            <div className="break-words leading-relaxed text-center">
                               <span
                                 className={
                                   homeDisp.resolved
@@ -746,7 +744,7 @@ export function VorrundePlan({
                               >
                                 {homeDisp.primary}
                               </span>
-                              <span className="mx-1 text-app-subtle/80 sm:mx-1.5">
+                              <span className="mx-1.5 text-app-subtle/80 sm:mx-2">
                                 vs.
                               </span>
                               <span
@@ -762,7 +760,7 @@ export function VorrundePlan({
                           </td>
                           <td className={tdScheduleScore}>
                             {readOnly ? (
-                              <div className="flex items-center justify-end gap-1 tabular-nums text-sm font-medium text-app-ink sm:gap-1.5">
+                              <div className="flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium text-app-ink sm:gap-2">
                                 {m.goals_home != null && m.goals_away != null ? (
                                   <>
                                     <span>{m.goals_home}</span>
@@ -776,7 +774,7 @@ export function VorrundePlan({
                                 )}
                               </div>
                             ) : (
-                              <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                                 <input
                                   type="text"
                                   inputMode="numeric"
