@@ -13,6 +13,7 @@ import {
   type KoStandingsBlock,
 } from "@/lib/ko-display-resolve";
 import { formatMatchStartDisplay } from "@/lib/match-schedule-times";
+import { tournamentMatchesFromJsonArray } from "@/lib/tournament-match-json";
 import type { CountingMode } from "@/lib/tournament-modes";
 import type {
   GroupPointsPresetId,
@@ -43,6 +44,10 @@ type Props = {
   pointsPreset: GroupPointsPresetId;
   countingMode: CountingMode;
   h2hIncludesGdGf: boolean;
+  /** Nur Anzeige (Zuschauer): keine Eingaben, keine Saves */
+  readOnly?: boolean;
+  /** GET-Endpunkt für Live-Aktualisierung (nur mit readOnly), z. B. `/api/zuschauen/…` */
+  spectatorPollHref?: string;
 };
 
 const DEBOUNCE_MS = 450;
@@ -147,6 +152,8 @@ export function VorrundePlan({
   pointsPreset,
   countingMode,
   h2hIncludesGdGf,
+  readOnly = false,
+  spectatorPollHref,
 }: Props) {
   const [matches, setMatches] = useState(initialMatches);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +200,8 @@ export function VorrundePlan({
 
   /** Live-Sync: Ergebnisse von anderen Tabs / Geräten (Supabase Realtime). */
   useEffect(() => {
+    if (readOnly) return;
+
     const supabase = createClient();
 
     const clearPersistTimer = (matchId: string) => {
@@ -259,7 +268,44 @@ export function VorrundePlan({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [tournamentId]);
+  }, [tournamentId, readOnly]);
+
+  /** Zuschauer: regelmäßig Spielstand vom Server holen (ohne Realtime/Auth). */
+  useEffect(() => {
+    if (!readOnly || !spectatorPollHref) return;
+    const href = spectatorPollHref;
+    let cancelled = false;
+
+    async function tick() {
+      try {
+        const r = await fetch(href);
+        if (!r.ok || cancelled) return;
+        const body = (await r.json()) as { matches?: unknown } | null;
+        if (!body?.matches || cancelled) return;
+        const next = tournamentMatchesFromJsonArray(body.matches);
+        setMatches(next);
+        matchesRef.current = next;
+        const d: Record<string, { h: string; a: string }> = {};
+        for (const m of next) {
+          d[m.id] = {
+            h: m.goals_home != null ? String(m.goals_home) : "",
+            a: m.goals_away != null ? String(m.goals_away) : "",
+          };
+        }
+        setDrafts(d);
+        draftsRef.current = d;
+      } catch {
+        /* ignorieren */
+      }
+    }
+
+    void tick();
+    const id = window.setInterval(() => void tick(), 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [readOnly, spectatorPollHref]);
 
   useEffect(() => {
     return () => {
@@ -272,6 +318,8 @@ export function VorrundePlan({
 
   const persistDraft = useCallback(
     async (row: TournamentMatchRow, h: string, a: string) => {
+      if (readOnly) return;
+
       if (h === "" && a === "") {
         if (row.goals_home == null && row.goals_away == null) return;
 
@@ -316,7 +364,7 @@ export function VorrundePlan({
         ),
       );
     },
-    [tournamentId],
+    [tournamentId, readOnly],
   );
 
   const schedulePersist = useCallback((matchId: string) => {
@@ -540,53 +588,71 @@ export function VorrundePlan({
                           </div>
                         </td>
                         <td className={tdScheduleScore}>
-                          <div className="flex items-center justify-end gap-1 sm:gap-1.5">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={dr.h}
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/\D/g, "");
-                                setDrafts((prev) => {
-                                  const next = {
-                                    ...prev,
-                                    [m.id]: {
-                                      ...prev[m.id],
-                                      h: v,
-                                      a: prev[m.id]?.a ?? "",
-                                    },
-                                  };
-                                  draftsRef.current = next;
-                                  return next;
-                                });
-                                schedulePersist(m.id);
-                              }}
-                              onBlur={() => flushPersist(m.id)}
-                              className={inputScoreClass}
-                              aria-label={`Tore ${home}`}
-                            />
-                            <span className="select-none text-app-subtle">:</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={dr.a}
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/\D/g, "");
-                                setDrafts((prev) => {
-                                  const next = {
-                                    ...prev,
-                                    [m.id]: { h: prev[m.id]?.h ?? "", a: v },
-                                  };
-                                  draftsRef.current = next;
-                                  return next;
-                                });
-                                schedulePersist(m.id);
-                              }}
-                              onBlur={() => flushPersist(m.id)}
-                              className={inputScoreClass}
-                              aria-label={`Tore ${away}`}
-                            />
-                          </div>
+                          {readOnly ? (
+                            <div className="flex items-center justify-end gap-1 tabular-nums text-sm font-medium text-app-ink sm:gap-1.5">
+                              {m.goals_home != null && m.goals_away != null ? (
+                                <>
+                                  <span>{m.goals_home}</span>
+                                  <span className="select-none text-app-subtle">
+                                    :
+                                  </span>
+                                  <span>{m.goals_away}</span>
+                                </>
+                              ) : (
+                                <span className="text-app-muted">—</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={dr.h}
+                                onChange={(e) => {
+                                  const v = e.target.value.replace(/\D/g, "");
+                                  setDrafts((prev) => {
+                                    const next = {
+                                      ...prev,
+                                      [m.id]: {
+                                        ...prev[m.id],
+                                        h: v,
+                                        a: prev[m.id]?.a ?? "",
+                                      },
+                                    };
+                                    draftsRef.current = next;
+                                    return next;
+                                  });
+                                  schedulePersist(m.id);
+                                }}
+                                onBlur={() => flushPersist(m.id)}
+                                className={inputScoreClass}
+                                aria-label={`Tore ${home}`}
+                              />
+                              <span className="select-none text-app-subtle">
+                                :
+                              </span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={dr.a}
+                                onChange={(e) => {
+                                  const v = e.target.value.replace(/\D/g, "");
+                                  setDrafts((prev) => {
+                                    const next = {
+                                      ...prev,
+                                      [m.id]: { h: prev[m.id]?.h ?? "", a: v },
+                                    };
+                                    draftsRef.current = next;
+                                    return next;
+                                  });
+                                  schedulePersist(m.id);
+                                }}
+                                onBlur={() => flushPersist(m.id)}
+                                className={inputScoreClass}
+                                aria-label={`Tore ${away}`}
+                              />
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -695,53 +761,71 @@ export function VorrundePlan({
                             </div>
                           </td>
                           <td className={tdScheduleScore}>
-                            <div className="flex items-center justify-end gap-1 sm:gap-1.5">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={dr.h}
-                                onChange={(e) => {
-                                  const v = e.target.value.replace(/\D/g, "");
-                                  setDrafts((prev) => {
-                                    const next = {
-                                      ...prev,
-                                      [m.id]: {
-                                        ...prev[m.id],
-                                        h: v,
-                                        a: prev[m.id]?.a ?? "",
-                                      },
-                                    };
-                                    draftsRef.current = next;
-                                    return next;
-                                  });
-                                  schedulePersist(m.id);
-                                }}
-                                onBlur={() => flushPersist(m.id)}
-                                className={inputScoreClass}
-                                aria-label={`Tore ${homeDisp.primary}`}
-                              />
-                              <span className="select-none text-app-subtle">:</span>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={dr.a}
-                                onChange={(e) => {
-                                  const v = e.target.value.replace(/\D/g, "");
-                                  setDrafts((prev) => {
-                                    const next = {
-                                      ...prev,
-                                      [m.id]: { h: prev[m.id]?.h ?? "", a: v },
-                                    };
-                                    draftsRef.current = next;
-                                    return next;
-                                  });
-                                  schedulePersist(m.id);
-                                }}
-                                onBlur={() => flushPersist(m.id)}
-                                className={inputScoreClass}
-                                aria-label={`Tore ${awayDisp.primary}`}
-                              />
-                            </div>
+                            {readOnly ? (
+                              <div className="flex items-center justify-end gap-1 tabular-nums text-sm font-medium text-app-ink sm:gap-1.5">
+                                {m.goals_home != null && m.goals_away != null ? (
+                                  <>
+                                    <span>{m.goals_home}</span>
+                                    <span className="select-none text-app-subtle">
+                                      :
+                                    </span>
+                                    <span>{m.goals_away}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-app-muted">—</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={dr.h}
+                                  onChange={(e) => {
+                                    const v = e.target.value.replace(/\D/g, "");
+                                    setDrafts((prev) => {
+                                      const next = {
+                                        ...prev,
+                                        [m.id]: {
+                                          ...prev[m.id],
+                                          h: v,
+                                          a: prev[m.id]?.a ?? "",
+                                        },
+                                      };
+                                      draftsRef.current = next;
+                                      return next;
+                                    });
+                                    schedulePersist(m.id);
+                                  }}
+                                  onBlur={() => flushPersist(m.id)}
+                                  className={inputScoreClass}
+                                  aria-label={`Tore ${homeDisp.primary}`}
+                                />
+                                <span className="select-none text-app-subtle">
+                                  :
+                                </span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={dr.a}
+                                  onChange={(e) => {
+                                    const v = e.target.value.replace(/\D/g, "");
+                                    setDrafts((prev) => {
+                                      const next = {
+                                        ...prev,
+                                        [m.id]: { h: prev[m.id]?.h ?? "", a: v },
+                                      };
+                                      draftsRef.current = next;
+                                      return next;
+                                    });
+                                    schedulePersist(m.id);
+                                  }}
+                                  onBlur={() => flushPersist(m.id)}
+                                  className={inputScoreClass}
+                                  aria-label={`Tore ${awayDisp.primary}`}
+                                />
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

@@ -516,8 +516,11 @@ export function TournamentWizard({ mode, initial }: Props) {
                   zur Planung; optional).
                 </p>
                 <div className="mt-5 space-y-6">
-                  <div className="space-y-2.5">
-                    <label htmlFor="tw-start-at" className={labelClass}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-x-10 sm:gap-y-0 lg:gap-x-12">
+                    <label
+                      htmlFor="tw-start-at"
+                      className={`${labelClass} shrink-0 sm:max-w-[13.5rem] sm:leading-snug`}
+                    >
                       Beginn (Datum &amp; Uhrzeit)
                     </label>
                     <input
@@ -525,7 +528,7 @@ export function TournamentWizard({ mode, initial }: Props) {
                       type="datetime-local"
                       value={tournamentStartLocal}
                       onChange={(e) => setTournamentStartLocal(e.target.value)}
-                      className={`${inputClass} max-w-md font-sans`}
+                      className={`${inputClass} w-full max-w-md font-sans sm:min-w-[12rem] sm:flex-1`}
                     />
                   </div>
                   <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap">

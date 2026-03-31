@@ -1,3 +1,4 @@
+import { SpectatorShareButton } from "@/components/spectator-share-button";
 import { TournamentListDeleteButton } from "@/components/tournament-list-delete-button";
 import { createClient } from "@/lib/supabase/server";
 import type { TournamentRow } from "@/types/tournament";
@@ -37,7 +38,9 @@ export default async function TurnierePage() {
         <div>
           <h1 className="text-2xl font-semibold text-app-ink">Meine Turniere</h1>
           <p className="mt-1 text-sm text-app-muted">
-            Übersicht deiner angelegten Turniere
+            Übersicht deiner angelegten Turniere. Pro Turnier:{" "}
+            <span className="text-app-ink/85">Zuschauen</span> öffnet Link und
+            QR-Code (Lesen ohne Login).
           </p>
         </div>
         <Link href="/turniere/neu" className={btnPrimary} prefetch>
@@ -96,6 +99,11 @@ export default async function TurnierePage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2 pointer-events-auto sm:justify-end">
+                      <SpectatorShareButton
+                        tournamentId={t.id}
+                        label="Zuschauen"
+                        className={btnEdit}
+                      />
                       <Link
                         href={`/turniere/bearbeiten/${t.id}`}
                         className={btnEdit}

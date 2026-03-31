@@ -20,6 +20,8 @@ export type TournamentRow = {
   tournament_start_at?: string | null;
   group_match_duration_minutes?: number | null;
   ko_match_duration_minutes?: number | null;
+  /** Öffentlicher Zuschauer-Link (UUID); nicht an Gäste weitergeben außer als vollständiger Link. */
+  spectator_token?: string | null;
   created_at: string;
   updated_at: string;
 };

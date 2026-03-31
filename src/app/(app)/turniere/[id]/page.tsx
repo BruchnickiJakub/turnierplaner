@@ -11,6 +11,7 @@ import {
 import { type CountingMode, getGroupLayout, parseParticipantNames } from "@/lib/tournament-modes";
 import { DeleteTournamentForm } from "@/components/delete-tournament-form";
 import { ResetTournamentResultsButton } from "@/components/reset-tournament-results-button";
+import { SpectatorShareButton } from "@/components/spectator-share-button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -110,6 +111,7 @@ export default async function TurnierDetailPage({ params }: Props) {
         <Link href="/turniere" className={btnOutline} prefetch>
           ← Alle Turniere
         </Link>
+        <SpectatorShareButton tournamentId={id} label="Zuschauer-Link" />
         <Link href={`/turniere/bearbeiten/${id}`} className={btnPrimary} prefetch>
           Bearbeiten
         </Link>
