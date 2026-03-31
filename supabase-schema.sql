@@ -19,6 +19,9 @@ create table if not exists public.tournaments (
   h2h_includes_gd_gf boolean default false,
   group_points_preset text default 'pts_3_1_0',
   participant_names jsonb default '[]'::jsonb,
+  tournament_start_at timestamptz null,
+  group_match_duration_minutes integer null,
+  ko_match_duration_minutes integer null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

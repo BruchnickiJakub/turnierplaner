@@ -80,17 +80,44 @@ export default async function TurnierDetailPage({ params }: Props) {
   const btnPrimary =
     "inline-flex min-h-11 items-center justify-center rounded-xl bg-app-primary px-4 py-2.5 text-sm font-medium text-app-card shadow-md shadow-app-primary/20 transition hover:bg-app-primary-hover active:scale-[0.99] sm:min-h-0";
 
+  let scheduleLine: string | null = null;
+  const startIso = t.tournament_start_at;
+  if (startIso || t.group_match_duration_minutes != null || t.ko_match_duration_minutes != null) {
+    const parts: string[] = [];
+    if (startIso) {
+      const d = new Date(startIso);
+      if (!Number.isNaN(d.getTime())) {
+        parts.push(
+          `Beginn: ${new Intl.DateTimeFormat("de-DE", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(d)}`,
+        );
+      }
+    }
+    if (t.group_match_duration_minutes != null) {
+      parts.push(`Vorrunde: ${t.group_match_duration_minutes} Min. / Spiel`);
+    }
+    if (t.ko_match_duration_minutes != null) {
+      parts.push(`K.O.: ${t.ko_match_duration_minutes} Min. / Spiel`);
+    }
+    scheduleLine = parts.length ? parts.join(" · ") : null;
+  }
+
   return (
     <div className="w-full px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-10">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <Link href="/turniere" className={btnOutline} prefetch>
           ← Alle Turniere
         </Link>
-        <Link href={`/turniere/${id}/bearbeiten`} className={btnPrimary} prefetch>
+        <Link href={`/turniere/bearbeiten/${id}`} className={btnPrimary} prefetch>
           Bearbeiten
         </Link>
       </div>
       <h1 className="mt-8 text-2xl font-semibold text-app-ink">{t.title}</h1>
+      {scheduleLine ? (
+        <p className="mt-2 text-sm text-app-muted">{scheduleLine}</p>
+      ) : null}
 
       <div className="mt-8">
         {!schedHint.ok ? (

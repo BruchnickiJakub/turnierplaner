@@ -97,7 +97,7 @@ export default async function TurnierePage() {
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2 pointer-events-auto sm:justify-end">
                       <Link
-                        href={`/turniere/${t.id}/bearbeiten`}
+                        href={`/turniere/bearbeiten/${t.id}`}
                         className={btnEdit}
                         prefetch
                       >

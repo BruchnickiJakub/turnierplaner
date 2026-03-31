@@ -12,6 +12,7 @@ import {
   type KoDisplaySide,
   type KoStandingsBlock,
 } from "@/lib/ko-display-resolve";
+import { formatMatchStartDisplay } from "@/lib/match-schedule-times";
 import type { CountingMode } from "@/lib/tournament-modes";
 import type {
   GroupPointsPresetId,
@@ -99,14 +100,33 @@ const inputScoreClass =
   "h-11 w-12 min-h-11 min-w-11 touch-manipulation rounded-xl border border-app-border/90 bg-app-card px-2 py-2 text-center text-sm font-medium text-app-ink tabular-nums shadow-sm outline-none transition focus:border-app-primary focus:ring-2 focus:ring-app-ring/40 sm:h-auto sm:min-h-0 sm:w-11 sm:min-w-11";
 
 const thSchedule =
-  "border-b border-app-border/70 bg-app-surface/85 px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted sm:px-3 sm:py-3.5";
+  "border-b border-app-border/70 bg-app-surface/85 px-1.5 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted sm:px-2 sm:py-2.5";
 const thScheduleCenter =
   thSchedule + " text-center";
 const thScheduleLeft = thSchedule + " text-left";
+/** Kopf über Torfeldern: rechts bündig zu den Inputs */
+const thScheduleScore = thSchedule + " text-right pr-1 sm:pr-2";
 const tdSchedule =
-  "border-b border-app-border/40 px-2 py-2.5 text-sm text-app-ink sm:px-3 sm:py-3";
+  "border-b border-app-border/40 px-1.5 py-2 align-middle text-sm text-app-ink sm:px-2 sm:py-2.5";
 const tdScheduleCenter = tdSchedule + " text-center tabular-nums";
 const tdScheduleLeft = tdSchedule + " text-left";
+/** Ergebniszelle: rechts ausgerichtet, kompakt neben der Spiel-Spalte */
+const tdScheduleScore =
+  tdSchedule + " text-right tabular-nums";
+
+/** Einheitliche Spalten: feste Anteile summieren 100 %, kein leeres Loch vor dem Ergebnis. */
+function ScheduleColgroup() {
+  return (
+    <colgroup>
+      <col style={{ width: "6%" }} />
+      <col style={{ width: "6%" }} />
+      <col style={{ width: "11%" }} />
+      <col style={{ width: "8%" }} />
+      <col style={{ width: "41%" }} />
+      <col style={{ width: "28%" }} />
+    </colgroup>
+  );
+}
 
 const thTable =
   "border-b border-app-border/70 bg-app-surface/85 px-2 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-app-muted first:pl-3 last:pr-3 sm:px-3";
@@ -457,22 +477,17 @@ export function VorrundePlan({
               Vorrunde — Ergebnisse
             </h3>
             <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
-              <table className="w-full min-w-[420px] border-collapse">
-                <colgroup>
-                  <col className="w-[3rem] sm:w-14" />
-                  <col className="w-[3rem] sm:w-14" />
-                  <col className="w-[3.25rem] sm:w-16" />
-                  <col />
-                  <col className="w-[7.25rem] sm:w-[8rem]" />
-                </colgroup>
+              <table className="w-full min-w-[400px] table-fixed border-collapse sm:min-w-[460px]">
+                <ScheduleColgroup />
                 <thead>
                   <tr className="shadow-sm shadow-app-ink/5">
                     <th className={thScheduleCenter}>Nr.</th>
                     <th className={thScheduleCenter}>Feld</th>
+                    <th className={thScheduleCenter}>Zeit</th>
                     <th className={thScheduleCenter}>Gr.</th>
                     <th className={thScheduleLeft}>Spiel</th>
                     <th
-                      className={thScheduleCenter + " min-w-0"}
+                      className={thScheduleScore}
                       title="Ergebnis"
                     >
                       <span className="sm:hidden">Erg.</span>
@@ -505,12 +520,17 @@ export function VorrundePlan({
                         <td className={tdScheduleCenter + " text-app-muted"}>
                           {m.pitch}
                         </td>
+                        <td
+                          className={tdScheduleCenter + " text-xs tabular-nums text-app-muted sm:text-sm"}
+                        >
+                          {formatMatchStartDisplay(m.start_time)}
+                        </td>
                         <td className={tdScheduleCenter}>
                           <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-md bg-app-surface/90 px-1.5 py-0.5 text-xs font-semibold text-app-ink ring-1 ring-app-border/60">
                             {gLabel}
                           </span>
                         </td>
-                        <td className={tdScheduleLeft + " min-w-0 max-w-[11rem] sm:max-w-none"}>
+                        <td className={tdScheduleLeft + " min-w-0 pr-1 sm:pr-2"}>
                           <div className="break-words leading-snug">
                             <span className="font-medium text-app-ink">{home}</span>
                             <span className="mx-1 text-app-subtle sm:mx-1.5">
@@ -519,8 +539,8 @@ export function VorrundePlan({
                             <span className="font-medium text-app-ink">{away}</span>
                           </div>
                         </td>
-                        <td className={tdScheduleCenter}>
-                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                        <td className={tdScheduleScore}>
+                          <div className="flex items-center justify-end gap-1 sm:gap-1.5">
                             <input
                               type="text"
                               inputMode="numeric"
@@ -586,22 +606,17 @@ export function VorrundePlan({
                 Vorpartien ergänzt, sobald die Ergebnisse da sind.
               </p>
               <div className="-mx-2 overflow-x-auto overscroll-x-contain px-1 pb-1 sm:-mx-1 sm:mx-0 sm:px-0">
-                <table className="w-full min-w-[420px] border-collapse">
-                  <colgroup>
-                    <col className="w-[3rem] sm:w-14" />
-                    <col className="w-[3rem] sm:w-14" />
-                    <col className="w-14 sm:w-[4.25rem]" />
-                    <col />
-                    <col className="w-[7.25rem] sm:w-[8rem]" />
-                  </colgroup>
+                <table className="w-full min-w-[400px] table-fixed border-collapse sm:min-w-[460px]">
+                  <ScheduleColgroup />
                   <thead>
                     <tr className="shadow-sm shadow-app-ink/5">
                       <th className={thScheduleCenter}>Nr.</th>
                       <th className={thScheduleCenter}>Feld</th>
+                      <th className={thScheduleCenter}>Zeit</th>
                       <th className={thScheduleCenter}>Runde</th>
                       <th className={thScheduleLeft}>Spiel</th>
                       <th
-                        className={thScheduleCenter + " min-w-0"}
+                        className={thScheduleScore}
                         title="Ergebnis"
                       >
                         <span className="sm:hidden">Erg.</span>
@@ -621,7 +636,7 @@ export function VorrundePlan({
                           m.slot_home,
                           m.label_home,
                         ),
-                        resolved: true,
+                        resolved: false,
                       };
                       const awayDisp = disp?.away ?? {
                         primary: matchSideLabel(
@@ -629,7 +644,7 @@ export function VorrundePlan({
                           m.slot_away,
                           m.label_away,
                         ),
-                        resolved: true,
+                        resolved: false,
                       };
                       const zebra =
                         rowIdx % 2 === 0 ? "bg-app-card/80" : "bg-app-surface/20";
@@ -641,14 +656,20 @@ export function VorrundePlan({
                           <td className={tdScheduleCenter + " text-app-muted"}>
                             {m.pitch}
                           </td>
+                          <td
+                            className={
+                              tdScheduleCenter +
+                              " text-xs tabular-nums text-app-muted sm:text-sm"
+                            }
+                          >
+                            {formatMatchStartDisplay(m.start_time)}
+                          </td>
                           <td className={tdScheduleCenter}>
                             <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-md bg-app-surface/90 px-1.5 py-0.5 text-xs font-semibold text-app-ink ring-1 ring-app-border/60">
                               {gLabel}
                             </span>
                           </td>
-                          <td
-                            className={tdScheduleLeft + " min-w-0 max-w-[11rem] sm:max-w-none"}
-                          >
+                          <td className={tdScheduleLeft + " min-w-0 pr-1 sm:pr-2"}>
                             <div className="break-words leading-snug">
                               <span
                                 className={
@@ -673,8 +694,8 @@ export function VorrundePlan({
                               </span>
                             </div>
                           </td>
-                          <td className={tdScheduleCenter}>
-                            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                          <td className={tdScheduleScore}>
+                            <div className="flex items-center justify-end gap-1 sm:gap-1.5">
                               <input
                                 type="text"
                                 inputMode="numeric"

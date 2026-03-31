@@ -17,6 +17,9 @@ export type TournamentRow = {
   h2h_includes_gd_gf: boolean | null;
   group_points_preset: string | null;
   participant_names: unknown;
+  tournament_start_at?: string | null;
+  group_match_duration_minutes?: number | null;
+  ko_match_duration_minutes?: number | null;
   created_at: string;
   updated_at: string;
 };

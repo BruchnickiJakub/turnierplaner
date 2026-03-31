@@ -1,6 +1,7 @@
 "use server";
 
 import { buildFullMatchPlan } from "@/lib/build-full-match-plan";
+import { assignMatchStartTimes } from "@/lib/match-schedule-times";
 import { createClient } from "@/lib/supabase/server";
 import type { TournamentRow } from "@/types/tournament";
 import { revalidatePath } from "next/cache";
@@ -43,6 +44,42 @@ function buildMatchInsertRows(
       label_away: r.label_away,
     }),
   );
+}
+
+function enrichMatchRowsWithSchedule(
+  rows: MatchInsertRow[],
+  t: Pick<
+    TournamentRow,
+    | "tournament_start_at"
+    | "group_match_duration_minutes"
+    | "ko_match_duration_minutes"
+  >,
+  courtCount: number,
+): MatchInsertRow[] {
+  const raw = t.tournament_start_at;
+  if (raw == null || String(raw).trim() === "") return rows;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return rows;
+
+  const g =
+    t.group_match_duration_minutes != null &&
+    Number.isFinite(t.group_match_duration_minutes) &&
+    t.group_match_duration_minutes >= 1
+      ? Math.floor(t.group_match_duration_minutes)
+      : 15;
+  const k =
+    t.ko_match_duration_minutes != null &&
+    Number.isFinite(t.ko_match_duration_minutes) &&
+    t.ko_match_duration_minutes >= 1
+      ? Math.floor(t.ko_match_duration_minutes)
+      : g;
+
+  return assignMatchStartTimes(rows, {
+    tournamentStartAt: d,
+    groupMatchDurationMinutes: g,
+    koMatchDurationMinutes: k,
+    courtCount,
+  });
 }
 
 function validateDistinctSortIndices(rows: MatchInsertRow[]): string | null {
@@ -114,7 +151,9 @@ export async function replaceTournamentMatchPlan(
 
   const { data: t, error: te } = await supabase
     .from("tournaments")
-    .select("user_id")
+    .select(
+      "user_id, tournament_start_at, group_match_duration_minutes, ko_match_duration_minutes",
+    )
     .eq("id", tournamentId)
     .maybeSingle();
 
@@ -128,12 +167,8 @@ export async function replaceTournamentMatchPlan(
     return { ok: true };
   }
 
-  const rows = buildMatchInsertRows(
-    tournamentId,
-    modusKey,
-    n,
-    courtCount,
-  );
+  let rows = buildMatchInsertRows(tournamentId, modusKey, n, courtCount);
+  rows = enrichMatchRowsWithSchedule(rows, t as TournamentRow, courtCount);
   if (rows.length === 0) return { ok: true };
 
   const bad = validateDistinctSortIndices(rows);
@@ -176,12 +211,13 @@ export async function ensureVorrundeSchedule(
   if ((count ?? 0) > 0) return { ok: true };
 
   const courts = t.court_count != null && t.court_count >= 1 ? t.court_count : 1;
-  const rows = buildMatchInsertRows(
+  let rows = buildMatchInsertRows(
     tournamentId,
     t.modus_key || "rr_1",
     n,
     courts,
   );
+  rows = enrichMatchRowsWithSchedule(rows, t, courts);
 
   if (rows.length === 0) return { ok: true };
 

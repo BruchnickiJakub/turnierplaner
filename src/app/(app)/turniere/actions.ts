@@ -28,6 +28,10 @@ export type TournamentPayload = {
   h2hIncludesGdGf: boolean;
   groupPointsPreset: GroupPointsPresetId;
   participantNames: string[];
+  /** ISO-UTC oder null */
+  tournamentStartAt: string | null;
+  groupMatchDurationMinutes: number | null;
+  koMatchDurationMinutes: number | null;
   id?: string;
 };
 
@@ -99,6 +103,9 @@ export async function saveTournament(
     group_points_preset: groupPointsPreset,
     format: null as string | null,
     participant_names: finalized,
+    tournament_start_at: payload.tournamentStartAt,
+    group_match_duration_minutes: payload.groupMatchDurationMinutes,
+    ko_match_duration_minutes: payload.koMatchDurationMinutes,
   };
 
   if (payload.id) {
@@ -136,6 +143,7 @@ export async function saveTournament(
 
     revalidatePath("/turniere");
     revalidatePath(`/turniere/${payload.id}`);
+    revalidatePath(`/turniere/bearbeiten/${payload.id}`);
     return { ok: true, id: payload.id };
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { SortableParticipantRow } from "@/components/sortable-participant-row";
 import {
   saveTournament,
   type TournamentPayload,
@@ -21,6 +22,28 @@ import {
   groupModiByCategory,
   parseParticipantNames,
 } from "@/lib/tournament-modes";
+import {
+  datetimeLocalToIsoUtc,
+  parseOptionalDurationMinutes,
+  tournamentStartToDatetimeLocal,
+} from "@/lib/tournament-schedule-form";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,6 +73,9 @@ type Initial = {
   h2hIncludesGdGf?: boolean | null;
   groupPointsPreset?: string | null;
   participantNames?: unknown;
+  tournamentStartAt?: string | null;
+  groupMatchDurationMinutes?: number | null;
+  koMatchDurationMinutes?: number | null;
 };
 
 type Props = {
@@ -98,6 +124,31 @@ export function TournamentWizard({ mode, initial }: Props) {
       normalizeGroupPointsPreset(initial?.groupPointsPreset ?? undefined),
     );
 
+  const [tournamentStartLocal, setTournamentStartLocal] = useState(() =>
+    tournamentStartToDatetimeLocal(initial?.tournamentStartAt),
+  );
+  const [groupMatchDuration, setGroupMatchDuration] = useState(() =>
+    initial?.groupMatchDurationMinutes != null
+      ? String(initial.groupMatchDurationMinutes)
+      : "",
+  );
+  const [koMatchDuration, setKoMatchDuration] = useState(() =>
+    initial?.koMatchDurationMinutes != null
+      ? String(initial.koMatchDurationMinutes)
+      : "",
+  );
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   const n = useMemo(() => {
     const v = parseInt(participantCount, 10);
     return Number.isFinite(v) ? v : 0;
@@ -126,6 +177,11 @@ export function TournamentWizard({ mode, initial }: Props) {
   const segments = useMemo(
     () => getGroupLayout(modusKey || "rr_1", n),
     [modusKey, n],
+  );
+
+  const participantSortIds = useMemo(
+    () => Array.from({ length: n }, (_, i) => `p-${i}`),
+    [n],
   );
 
   useEffect(() => {
@@ -178,6 +234,8 @@ export function TournamentWizard({ mode, initial }: Props) {
     }
     setSaving(true);
     const cc = parseInt(courtCount, 10);
+    const gDur = parseOptionalDurationMinutes(groupMatchDuration);
+    const kDur = parseOptionalDurationMinutes(koMatchDuration);
     const payload: TournamentPayload = {
       title: title.trim(),
       participantCount: n,
@@ -190,6 +248,9 @@ export function TournamentWizard({ mode, initial }: Props) {
       h2hIncludesGdGf,
       groupPointsPreset,
       participantNames: names,
+      tournamentStartAt: datetimeLocalToIsoUtc(tournamentStartLocal),
+      groupMatchDurationMinutes: gDur,
+      koMatchDurationMinutes: kDur,
     };
     if (initial?.id) {
       payload.id = initial.id;
@@ -208,6 +269,43 @@ export function TournamentWizard({ mode, initial }: Props) {
       router.push("/turniere");
     }
     router.refresh();
+  }
+
+  function moveParticipantRow(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= n || to >= n) return;
+    setNames((prev) => {
+      const base = resizeNames(prev, n);
+      const next = base.slice();
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item!);
+      return next;
+    });
+  }
+
+  function handleParticipantDragStart(event: DragStartEvent) {
+    setActiveDragId(String(event.active.id));
+  }
+
+  function handleParticipantDragEnd(event: DragEndEvent) {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const from = parseInt(String(active.id).slice(2), 10);
+    const to = parseInt(String(over.id).slice(2), 10);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return;
+    setNames((prev) => arrayMove(resizeNames(prev, n), from, to));
+  }
+
+  function handleParticipantDragCancel() {
+    setActiveDragId(null);
+  }
+
+  function updateParticipantName(index: number, value: string) {
+    setNames((prev) => {
+      const nxt = resizeNames(prev, n);
+      nxt[index] = value;
+      return nxt;
+    });
   }
 
   function randomizeParticipantGroups() {
@@ -265,9 +363,13 @@ export function TournamentWizard({ mode, initial }: Props) {
 
   const tableHeadClass =
     "border border-app-border bg-app-surface/90 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-muted";
+  const tableHeadClassNarrow =
+    "border border-app-border bg-app-surface/90 px-1 py-2 text-center text-xs font-semibold uppercase tracking-wide text-app-muted w-10";
   const tableCellClass = "border border-app-border p-0 align-middle";
+  const tableCellGripClass =
+    "border border-app-border bg-app-surface/25 px-0 py-0 text-center align-middle w-10 select-none";
   const nrCellClass =
-    "border border-app-border bg-app-card px-3 py-2 text-center text-sm text-app-muted w-14";
+    "border border-app-border bg-app-card px-3 py-2 text-center text-sm text-app-muted w-12 sm:w-14";
 
   return (
     <div className="w-full">
@@ -401,10 +503,72 @@ export function TournamentWizard({ mode, initial }: Props) {
               Turnier-Einstellungen
             </h3>
             <p className="mt-1 text-sm text-app-muted">
-              Regeln für die Gruppenphase und Spielfelder.
+              Regeln für die Gruppenphase, Spielfelder und optional den Zeitplan.
             </p>
 
             <div className="mt-6 space-y-6">
+              <div className="rounded-xl border border-app-border/70 bg-app-card/40 p-4 sm:p-5">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-app-subtle">
+                  Zeitplan
+                </h4>
+                <p className="mt-1 text-xs text-app-muted">
+                  Ohne Pausen: Startzeit und geschätzte Spieldauer pro Partie (nur
+                  zur Planung; optional).
+                </p>
+                <div className="mt-5 space-y-6">
+                  <div className="space-y-2.5">
+                    <label htmlFor="tw-start-at" className={labelClass}>
+                      Beginn (Datum &amp; Uhrzeit)
+                    </label>
+                    <input
+                      id="tw-start-at"
+                      type="datetime-local"
+                      value={tournamentStartLocal}
+                      onChange={(e) => setTournamentStartLocal(e.target.value)}
+                      className={`${inputClass} max-w-md font-sans`}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap">
+                    <div className="min-w-[10rem] flex-1 space-y-2.5">
+                      <label htmlFor="tw-dur-group" className={labelClass}>
+                        Spieldauer Vorrunde
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="tw-dur-group"
+                          type="number"
+                          min={1}
+                          max={480}
+                          placeholder="z. B. 15"
+                          value={groupMatchDuration}
+                          onChange={(e) => setGroupMatchDuration(e.target.value)}
+                          className={`${inputClass} max-w-[7rem]`}
+                        />
+                        <span className="text-sm text-app-muted">Min.</span>
+                      </div>
+                    </div>
+                    <div className="min-w-[10rem] flex-1 space-y-2.5">
+                      <label htmlFor="tw-dur-ko" className={labelClass}>
+                        Spieldauer Finale / K.O.
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="tw-dur-ko"
+                          type="number"
+                          min={1}
+                          max={480}
+                          placeholder="z. B. 15"
+                          value={koMatchDuration}
+                          onChange={(e) => setKoMatchDuration(e.target.value)}
+                          className={`${inputClass} max-w-[7rem]`}
+                        />
+                        <span className="text-sm text-app-muted">Min.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-x-10 sm:gap-y-0 lg:gap-x-12">
                 <label
                   htmlFor="tw-courts"
@@ -500,74 +664,98 @@ export function TournamentWizard({ mode, initial }: Props) {
             {n} Teilnehmer · {getModusLabel(modusKey)}
           </p>
 
-          <div
-            className={`space-y-8 transition-shadow duration-300 ${
-              shuffleBurst ? "tw-shuffle-shell-active" : ""
-            }`}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleParticipantDragStart}
+            onDragEnd={handleParticipantDragEnd}
+            onDragCancel={handleParticipantDragCancel}
           >
-            {segments.map((seg, segIndex) => {
-              const start = segments
-                .slice(0, segIndex)
-                .reduce((acc, g) => acc + g.size, 0);
-              return (
-                <div key={`${seg.label}-${segIndex}`}>
-                  <h3 className="mb-3 text-center text-base font-semibold text-app-ink">
-                    {seg.label}
-                  </h3>
-                  <div className="overflow-x-auto rounded-xl border border-app-border/90">
-                    <table className="w-full min-w-[320px] border-collapse text-sm">
-                      <thead>
-                        <tr>
-                          <th className={tableHeadClass}>Nr.</th>
-                          <th className={tableHeadClass}>Teilnehmer</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Array.from({ length: seg.size }, (_, row) => {
-                          const gi = start + row;
-                          const displayNr = gi + 1;
-                          return (
-                            <tr
-                              key={gi}
-                              className={`bg-app-card odd:bg-app-surface/30 ${
-                                shuffleBurst ? "tw-shuffle-row-active" : ""
-                              }`}
-                              style={
-                                shuffleBurst
-                                  ? {
-                                      animationDelay: `${gi * 42}ms`,
-                                    }
-                                  : undefined
-                              }
-                            >
-                              <td className={nrCellClass}>{displayNr}</td>
-                              <td className={tableCellClass}>
-                                <input
-                                  type="text"
-                                  value={names[gi] ?? ""}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setNames((prev) => {
-                                      const nxt = resizeNames(prev, n);
-                                      nxt[gi] = v;
-                                      return nxt;
-                                    });
-                                  }}
-                                  placeholder={`${displayNr}. Teilnehmer`}
-                                  className="h-full w-full min-h-[2.75rem] border-0 bg-transparent px-3 py-2 text-app-ink outline-none focus:ring-2 focus:ring-inset focus:ring-app-ring/30"
-                                  autoComplete="off"
-                                />
-                              </td>
+            <SortableContext
+              items={participantSortIds}
+              strategy={verticalListSortingStrategy}
+            >
+              <div
+                className={`space-y-8 transition-shadow duration-300 ${
+                  shuffleBurst ? "tw-shuffle-shell-active" : ""
+                }`}
+              >
+                {segments.map((seg, segIndex) => {
+                  const start = segments
+                    .slice(0, segIndex)
+                    .reduce((acc, g) => acc + g.size, 0);
+                  return (
+                    <div key={`${seg.label}-${segIndex}`}>
+                      <h3 className="mb-3 text-center text-base font-semibold text-app-ink">
+                        {seg.label}
+                      </h3>
+                      <div className="overflow-x-auto rounded-xl border border-app-border/90">
+                        <table className="w-full min-w-[320px] border-collapse text-sm">
+                          <thead>
+                            <tr>
+                              <th
+                                className={tableHeadClassNarrow}
+                                aria-label="Sortieren"
+                              >
+                                <span className="sr-only">Sortieren</span>
+                              </th>
+                              <th className={tableHeadClass}>Nr.</th>
+                              <th className={tableHeadClass}>Teilnehmer</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                          </thead>
+                          <tbody>
+                            {Array.from({ length: seg.size }, (_, row) => {
+                              const gi = start + row;
+                              const displayNr = gi + 1;
+                              return (
+                                <SortableParticipantRow
+                                  key={`p-${gi}`}
+                                  id={`p-${gi}`}
+                                  gi={gi}
+                                  displayNr={displayNr}
+                                  n={n}
+                                  name={names[gi] ?? ""}
+                                  shuffleBurst={shuffleBurst}
+                                  tableCellGripClass={tableCellGripClass}
+                                  nrCellClass={nrCellClass}
+                                  tableCellClass={tableCellClass}
+                                  onNameChange={updateParticipantName}
+                                  moveParticipantRow={moveParticipantRow}
+                                />
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SortableContext>
+            <DragOverlay dropAnimation={{ duration: 220, easing: "ease" }}>
+              {activeDragId ? (
+                <div className="pointer-events-none flex min-w-[240px] max-w-[min(92vw,28rem)] items-center gap-3 rounded-xl border-2 border-app-primary/50 bg-app-card px-4 py-3 shadow-xl shadow-app-ink/15 ring-2 ring-app-primary/25">
+                  {(() => {
+                    const idx = parseInt(activeDragId.slice(2), 10);
+                    if (!Number.isFinite(idx) || idx < 0 || idx >= n) {
+                      return null;
+                    }
+                    const label = (names[idx] ?? "").trim();
+                    return (
+                      <>
+                        <span className="tabular-nums text-sm font-semibold text-app-muted">
+                          {idx + 1}.
+                        </span>
+                        <span className="truncate text-sm font-medium text-app-ink">
+                          {label || `${idx + 1}. Teilnehmer`}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
-              );
-            })}
-          </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
 
           <div className="mt-8 flex flex-col items-center gap-1">
             <button
@@ -587,8 +775,10 @@ export function TournamentWizard({ mode, initial }: Props) {
             </button>
           </div>
           <p className="mx-auto mt-2 max-w-md text-center text-xs text-app-muted">
-            Verteilt die eingetragenen Namen zufällig auf die Platzhalter
-            (Gruppen gemäß Modus).
+            Zeile am linken Griff greifen — sie folgt der Maus; loslassen zum
+            Einreihen. Mit den Pfeiltasten auf dem Griff eine Position
+            nach oben/unten. „Random generieren“ verteilt die Namen zufällig auf
+            die Platzhalter (Gruppen gemäß Modus).
           </p>
 
           {step2Toolbar()}
